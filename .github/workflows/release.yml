@@ -68,11 +68,30 @@ jobs:
       contents: write  # 允许创建 Release
 
     steps:
+      # 拉全历史,用于生成上一个 tag 到本次的提交清单
+      - name: Checkout (fetch all history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 用 git log 生成 changelog:上一个 tag → 当前 tag 的提交列表
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || true)
+          if [ -n "$PREV_TAG" ]; then
+            echo "### Changes since $PREV_TAG" > /tmp/changelog.md
+            git log --oneline --no-merges "$PREV_TAG"..HEAD >> /tmp/changelog.md
+          else
+            echo "### Initial release" > /tmp/changelog.md
+            git log --oneline --no-merges HEAD >> /tmp/changelog.md
+          fi
+          echo "changelog written:"
+          cat /tmp/changelog.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # 自动用当前 tag 作为 Release 版本
-          # 自动生成 release notes(基于 tag 之间的 commit/PR)
-          generate_release_notes: true
           name: model-downloader ${{ github.ref_name }}
+          body_path: /tmp/changelog.md
 

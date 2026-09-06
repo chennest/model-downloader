@@ -28,7 +28,8 @@ git push origin v0.1.0
 ```
 
 - 镜像 tag 规则:`v0.1.0` → 同时发布 `0.1.0` 与 `latest`
-- 构建日志:仓库 Actions 页面查看
+- **GitHub Release 同步自动创建**(release notes 自动生成,基于两次 tag 之间的提交)
+- 构建日志与 Release:仓库 Actions / Releases 页面查看
 - 拉取:
 
 ```sh

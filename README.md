@@ -18,22 +18,37 @@
 docker build -t model-downloader .
 ```
 
-## 用法
+## 用法(复制即用)
 
-镜像不做任何缓存目录假设,只透传标准环境变量给底层 CLI。**设了哪些变量、模型就落在哪**:
+镜像不做任何缓存目录假设,只透传标准环境变量给底层 CLI。**设了哪些变量、模型就落在哪**。
+
+### 标准模板 ①:HuggingFace(hf)——已带国内镜像
+
+容器内固定挂载 `/models`(宿主机目录自选),国内加速走 hf-mirror:
 
 ```sh
-# HuggingFace(国内加速 + 落盘到宿主机 ./models)
 docker run --rm -v "$PWD/models:/models" \
     -e HF_ENDPOINT=https://hf-mirror.com \
     -e HF_HOME=/models \
     model-downloader hf download Qwen/Qwen2.5-7B-Instruct
+```
 
-# ModelScope(缓存到宿主机 ./models)
+- `-v "$PWD/models:/models"`:宿主机 `./models` → 容器内 `/models`,模型落盘到宿主机
+- `-e HF_ENDPOINT=https://hf-mirror.com`:**国内下载加速镜像**(必带,否则直连 huggingface.co 会失败/极慢)
+- `-e HF_HOME=/models`:模型缓存写到容器内 `/models`,与挂载点对齐
+
+### 标准模板 ②:ModelScope(ms)
+
+```sh
 docker run --rm -v "$PWD/models:/models" \
     -e MODELSCOPE_CACHE=/models \
     model-downloader ms download --model Qwen/Qwen2.5-7B-Instruct
 ```
+
+- `-v "$PWD/models:/models"`:宿主机 `./models` → 容器内 `/models`,模型落盘到宿主机
+- `-e MODELSCOPE_CACHE=/models`:模型缓存写到容器内 `/models`,与挂载点对齐
+
+> 两个模板统一规则:**宿主机目录随意,容器内目录固定 `/models`**,下载结果都在宿主机的 `./models` 下(模型较多时建议挂到独立大磁盘)。
 
 ### 支持的环境变量(全部原样透传)
 
@@ -53,7 +68,7 @@ docker run --rm -v "$PWD/models:/models" \
 | `MODELSCOPE_CACHE` | 模型缓存根目录 | `-e MODELSCOPE_CACHE=/models` |
 | `MODELSCOPE_ENDPOINT` | API 地址(国内一般不需要改) | `-e MODELSCOPE_ENDPOINT=https://www.modelscope.cn` |
 
-> 入口脚本每次启动会打印当前生效的下载配置,可据此确认模型落盘位置。
+> 入口脚本每次启动会打印当前生效的下载配置(缓存目录 / 加速地址),可据此确认模型实际落盘位置。
 
 ### 下载到平铺目录(不用 HF 缓存结构)
 
@@ -85,6 +100,7 @@ docker run --rm \
     model-downloader hf download "$MODEL"
 
 # 之后 vLLM 直接指向宿主机目录即可
+# (容器内缓存结构:/models/hub/<repo> 镜像了 HF 官方缓存布局)
 docker run --rm --gpus all -v "$PWD/models:/models" \
     vllm/vllm-openai --model /models/hub/$MODEL --port 8000
 ```

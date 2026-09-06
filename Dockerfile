@@ -3,16 +3,31 @@
 # 缓存位置完全由用户 docker run 时通过环境变量传入。
 #
 # 参考: alexcheng1982/model-downloader(去掉了硬编码 /model-files-cache)
+#
+# 多阶段构建原因: modelscope 部分依赖(pydantic-core 等)在 alpine(musl)
+# 无预编译 wheel,需在本阶段用编译链源码安装,最终镜像不携带编译工具。
 
-FROM python:3.12-alpine
+# ---- build 阶段:安装 python 依赖 ----
+FROM python:3.12-alpine AS build
 
-# alpine 基础工具(下载与调试用)
-RUN apk add --no-cache bash curl wget ca-certificates
-
-WORKDIR /workspace
+RUN apk add --no-cache \
+    build-base \
+    libffi-dev \
+    openssl-dev \
+    musl-dev \
+    linux-headers \
+    gfortran \
+    bash
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+
+# ---- runtime 阶段:最小镜像 ----
+FROM python:3.12-alpine
+
+RUN apk add --no-cache bash curl wget ca-certificates
+
+COPY --from=build /install /usr/local
 
 # 约定俗成的挂载点:宿主机目录挂到这里,模型即落在宿主机
 VOLUME ["/models"]

@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 下载的模型缓存(如本地跑过)
+/models/
+*.safetensors
+*.bin
+*.gguf

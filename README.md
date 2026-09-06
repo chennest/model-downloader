@@ -18,6 +18,23 @@
 docker build -t model-downloader .
 ```
 
+## 自动发版(打 tag 即发布)
+
+推送 `vX.Y.Z` 格式的 tag 会触发 GitHub Actions 自动构建并发布到 **GHCR**(`ghcr.io/chennest/model-downloader`):
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+- 镜像 tag 规则:`v0.1.0` → 同时发布 `0.1.0` 与 `latest`
+- 构建日志:仓库 Actions 页面查看
+- 拉取:
+
+```sh
+docker pull ghcr.io/chennest/model-downloader:v0.1.0
+```
+
 ## 用法(复制即用)
 
 镜像不做任何缓存目录假设,只透传标准环境变量给底层 CLI。**设了哪些变量、模型就落在哪**。
